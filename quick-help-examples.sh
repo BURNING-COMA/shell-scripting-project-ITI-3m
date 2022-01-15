@@ -82,3 +82,13 @@
     # sed 's!/!!' means substitute each '/' with empty string. which has same effect as deleting each /. 
 
     # https://unix.stackexchange.com/questions/369149/the-differences-between-sed-and
+
+
+
+# sed tutorial 
+# https://www.grymoire.com/Unix/Sed.html#uh-1
+
+
+
+# check existance of a patten inside a file or string 
+# grep -q pattern file -> then use exit code to construct logic 

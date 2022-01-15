@@ -50,14 +50,39 @@ create_table() {
     if ! is_file_name_valid "$file_name" # no '/' in the name
     then 
         echo 'illegal name: name cannot contain /'
-    else 
-        if ! touch "$file_name" 2>> '../bash-error-log'  # to supress errors produced by mkdir by redirecting it to bash-error-log
-        then 
-            echo 'something wrong: try another name'
-        else 
-            echo 'CREATE TABLE'
-        fi
-    fi 
+        return 
+    elif [ -f "$file_name" ]
+    then 
+        echo 'Table name is already used. pick another name!'
+        return 
+    fi
+
+    # create table file 
+    touch "$file_name" 2>> '../bash-error-log'  # to supress errors produced by mkdir by redirecting it to bash-error-log
+
+
+    # input columns of the table - first is pk - no types 
+    # first line of table file contain col names 
+    read -p "primary key column name: "; 
+    echo -n "$REPLY:" >> "$file_name";
+    select option in "enter new column" "completed"
+    do  
+        case $REPLY in 
+            1) 
+                read -p "column name: "; 
+                # each col name must be unique
+                if grep -q "$REPLY" "$file_name"; # grep -q simply exit with 0 if at least one match found, otherwise 1
+                then
+                    echo 'column name is used. pick other name!';
+                else 
+                    echo -n "$REPLY:" >> "$file_name";
+                fi 
+                ;;
+            2) 
+                echo 'CREATE TABLE'
+                return 
+        esac 
+    done 
 }
 
 list_tables() {
