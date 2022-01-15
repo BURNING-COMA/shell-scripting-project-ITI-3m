@@ -78,7 +78,7 @@
 
 # sed substitute command 
 
-    # ls --classify | grep / | sed 's!/!!' # syntax: sed 's for substitute command' 'seperator I choosed !' 'search pattern' 'sep' 'replacement str' 'sep'
+    ls --classify | grep / | sed 's!/!!' # syntax: sed 's for substitute command' 'seperator I choosed !' 'search pattern' 'sep' 'replacement str' 'sep'
     # sed 's!/!!' means substitute each '/' with empty string. which has same effect as deleting each /. 
 
     # https://unix.stackexchange.com/questions/369149/the-differences-between-sed-and

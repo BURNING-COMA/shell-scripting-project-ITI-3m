@@ -1,7 +1,0 @@
-mkdir: missing operand
-Try 'mkdir --help' for more information.
-mkdir: cannot create directory ‘test’: File exists
-mkdir: missing operand
-Try 'mkdir --help' for more information.
-mkdir: cannot create directory ‘test’: File exists
-mkdir: cannot create directory ‘test’: File exists
