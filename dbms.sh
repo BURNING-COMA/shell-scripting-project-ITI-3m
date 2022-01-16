@@ -93,7 +93,7 @@ list_tables() {
 
 
 drop_table() { 
-    read -p "Database Name To Drop: "
+    read -p "Table Name To Drop: "
     file_name=$REPLY
     if [ -f "$file_name" ] 
     then 
@@ -108,6 +108,108 @@ drop_table() {
     else 
         echo 'Table does not exist!'
     fi  
+}
+
+# TODO
+# DONE check on PK 
+insert_into_table() {
+    # input table name
+    read -p "table name: "
+    # check table existence -> skip 
+    # display table header  
+    table_name="$REPLY"
+    # take pk and check it -> skip 
+    # take a record form user
+    
+
+    while true 
+    do 
+        select option in "insert new record" "done"
+        do
+            case $REPLY in 
+                1) 
+                    echo '' 
+                    echo "enter a value for each column seprated by ':'. example-> c1:c2:c3: "
+                    head -1 "$table_name";
+                    echo ''
+                    read
+                    # trust user and append the record 
+                    user_record="$REPLY"
+                    record_pk=`cut -f1 -d: <<< "$user_record"` # using what's called 'Here Strings' in Bash
+                    if grep -q "^$record_pk:" "$table_name"; 
+                    then 
+                        echo "primary key is used. pick another one!"
+                        echo ''
+                    else 
+                        echo '' >> "$table_name" # new line 
+                        echo -n "$REPLY" >> "$table_name"
+                        echo 'Record Added'
+                    fi
+                    break
+                    ;;
+                2) 
+                    return
+                    ;;
+            esac
+        done
+    done 
+}
+
+
+# TODO
+select_from_table() {
+    read -p "table name: "
+    table_name="$REPLY"
+    while true 
+    do  
+        select option in "select all" "select by primary key" "done"
+        do 
+            case $REPLY in 
+                1) 
+                    cat "$table_name"
+                    echo ''
+                    break
+                    ;;
+                2) 
+                    read -p "primary key: "
+                    primary_key="$REPLY"
+                    grep "^$primary_key:" "$table_name"
+                    break 
+                    ;; 
+                3) 
+                    return  
+                    ;; 
+            esac 
+        done 
+    done 
+}
+
+
+# TODO 
+delete_from_table() {
+    read -p "table name: ";
+    table_name="$REPLY"
+    while true
+    do
+        select option in "delete all" "delete by primary key" "no more delete"
+        do 
+            case $REPLY in 
+                1) 
+                    echo `head -1 "$table_name"` > "$table_name"
+                    break
+                    ;; 
+                2) 
+                    read -p "primary key: "
+                    primary_key="$REPLY"
+                    sed -i "/^${primary_key}:/d" "$table_name"
+                    break
+                    ;;
+                3) 
+                    return 
+                    ;;
+            esac
+        done 
+    done
 }
 #===============================================================================================#
 # main menu functions 
@@ -175,7 +277,7 @@ connect_to_database() {
     while true 
     do 
         echo "Connected to Database $file_name ..."
-        select command in "CREATE TABLE" "LIST TABLES" "DROP TABLE" "INSERT INTO TABLE" "DELETE FROM TABLE" "UPDATE TABLE" "DISCONNECT FROM DATABASE"
+        select command in "CREATE TABLE" "LIST TABLES" "DROP TABLE" "INSERT INTO TABLE" "DELETE FROM TABLE" "UPDATE TABLE" "SELECT" "DISCONNECT FROM DATABASE"
         do 
             case $REPLY in 
                 1) 
@@ -201,8 +303,12 @@ connect_to_database() {
                 6) 
                     update_table 
                     break 
-                    ;; 
+                    ;;
                 7) 
+                    select_from_table 
+                    break
+                    ;;
+                8) 
                     # leave current database: switch to general directory, clean screen
                     cd ..
                     clear # to clear the screen for the main menu 
