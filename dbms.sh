@@ -16,34 +16,6 @@ is_file_name_valid() {
 #===============================================================================================#
 # inside db menu 
 
-#TODO 
-#
-
-# 1) 
-#     create_table
-#     break 
-#     ;;
-# 2) 
-#     list_tables DONE
-#     break 
-#     ;; 
-# 3) 
-#     drop_table 
-#     break
-#     ;;
-# 4) 
-#     insert_into_table
-#     break 
-#     ;; 
-# 5) 
-#     delete_from_table 
-#     break 
-#     ;; 
-# 6) 
-#     update_table 
-#     break 
-#     ;; 
-
 create_table() { 
     read -p "Table Name to Create: "
     file_name=$REPLY
@@ -110,7 +82,7 @@ drop_table() {
     fi  
 }
 
-# TODO
+
 # DONE check on PK 
 insert_into_table() {
     # input table name
@@ -156,7 +128,7 @@ insert_into_table() {
 }
 
 
-# TODO
+
 select_from_table() {
     read -p "table name: "
     table_name="$REPLY"
@@ -188,6 +160,7 @@ select_from_table() {
 # TODO 
 delete_from_table() {
     read -p "table name: ";
+    # skip table existance check
     table_name="$REPLY"
     while true
     do
@@ -210,6 +183,36 @@ delete_from_table() {
             esac
         done 
     done
+}
+
+
+# TODO
+# there are only 2 updates: 
+# 1. add new column 
+# 2. delete column but not primary key
+update_table() { 
+    read -p "table name: ";
+    # skip table existance check
+    table_name="$REPLY"
+
+    while true 
+    do 
+        select option from "add column" "delete column" "done"
+        do 
+            case $REPLY in
+                1) 
+
+                    break 
+                    ;; 
+                2) 
+                    break 
+                    ;; 
+                3) 
+                    return 
+                    ;;  
+            esac 
+        done 
+    done 
 }
 #===============================================================================================#
 # main menu functions 
