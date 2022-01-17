@@ -4,13 +4,22 @@
 # some config  
 # set -e # suppress command errors 
 
+############################################################
+
 # helper functions
-
-
 # make sure the given string ( assumed to be a proposed file name ) not containing '/'. To make sure database folder will be in current dir
 is_file_name_valid() {
     #   no '/'
     [[ "$1" != *"/"* ]]
+}
+
+# check that column name does not contain ':' since it is preserved for table format
+# precondition : there is 1 argument: the suggested name of column
+# postcondition : Exit code is 0 if given string doesn't contain ':', otherwise 1
+is_column_name_valid() {
+     # pass given string to grep -q ':' using Here strings and then negate it's exit code
+    ! grep -q ':' <<< $1 
+
 }
 
 #===============================================================================================#
@@ -19,13 +28,14 @@ is_file_name_valid() {
 create_table() { 
     read -p "Table Name to Create: "
     file_name=$REPLY
+    # check 1. name valie, 2. name is not taken 
     if ! is_file_name_valid "$file_name" # no '/' in the name
     then 
-        echo 'illegal name: name cannot contain /'
+        printf '\n!\nillegal name: name cannot contain /\n\n'
         return 
-    elif [ -f "$file_name" ]
+    elif [ -f "$file_name" ] # to prevent duplicate table names
     then 
-        echo 'Table name is already used. pick another name!'
+        printf '\n!\ntable name is already used. pick another name.\n\n'
         return 
     fi
 
@@ -35,65 +45,87 @@ create_table() {
 
     # input columns of the table - first is pk - no types 
     # first line of table file contain col names 
+    # second line contains col numbers
     read -p "primary key column name: "; 
     echo -n "$REPLY:" >> "$file_name";
-    select option in "enter new column" "completed"
-    do  
-        case $REPLY in 
-            1) 
-                read -p "column name: "; 
-                # each col name must be unique
-                if grep -q "$REPLY" "$file_name"; # grep -q simply exit with 0 if at least one match found, otherwise 1
-                then
-                    echo 'column name is used. pick other name!';
-                else 
-                    echo -n "$REPLY:" >> "$file_name";
-                fi 
-                ;;
-            2) 
-                echo 'CREATE TABLE'
-                return 
-        esac 
-    done 
+
+    while true 
+    do 
+        select option in "enter new column" "completed"
+        do  
+            case $REPLY in 
+                1) 
+                    read -p "column name: "; 
+                    column_name="$REPLY"
+                    # each col name must be unique
+                    if ! is_column_name_valid "$column_name"
+                    then 
+                        printf "\n!\n column name is not valid. Don't use ':'\n\n"
+                    elif grep -q "$column_name" "$file_name"; # grep -q simply exit with 0 if at least one match found, otherwise 1
+                    then
+                        echo 'column name is used. pick other name!';
+                    else 
+                        echo -n "$column_name:" >> "$file_name";
+                    fi
+                    break 
+                    ;;
+                2) 
+                    echo '' >> "$file_name" 
+                    echo 'CREATE TABLE'
+                    return 
+            esac 
+        done
+    done  
 }
 
 list_tables() {
+    echo ''
     echo 'Tables in this database: '
-    ls
     echo '--------------------------------'
+    ls -1
+    echo '--------------------------------'
+    echo ''
 }
 
 
 drop_table() { 
-    read -p "Table Name To Drop: "
+    
+    read -p "table Name To Drop: "
     file_name=$REPLY
-    if [ -f "$file_name" ] 
+    
+    if ! [ -f "$file_name" ] 
+    then
+        printf "\n!\ntable does not exist!\n\n" 
+        return 
+    fi 
+    
+    printf "\n!\nare you sure that you want to drop table ${file_name} ?\n"
+    printf "there is no undo for this action.\nenter 'YES!' without quotes to confirm or anything else to cancel: "
+    read
+    if [ $REPLY == "YES!" ] 
     then 
-        read -p "Are you sure that you want to drop ${file_name} table. There is no undo for this action. Enter 'YES!' without quotes to confirm: "
-        if [ $REPLY == "YES!" ] 
-        then 
-            rm "${file_name}" 2>> "../bash-error-log"
-            echo "DROP TABLE"
-        else 
-            echo "cancel drop table"
-        fi
+        rm "${file_name}" 2>> "../bash-error-log"
+        printf "\n!\ndone drop table\n\n"
     else 
-        echo 'Table does not exist!'
-    fi  
+        printf "\n!\ncancel drop table\n\n"
+    fi
 }
 
 
 # DONE check on PK 
+# TODO check and enforce new records to match table format 
 insert_into_table() {
-    # input table name
     read -p "table name: "
-    # check table existence -> skip 
+ 
+    if ! [ -f "$REPLY" ]
+    then
+        printf "\n!\ntable does not exist.\n\n"
+        return  
+    fi 
+
     # display table header  
     table_name="$REPLY"
-    # take pk and check it -> skip 
-    # take a record form user
-    
-
+    # take a record form user and insert it       
     while true 
     do 
         select option in "insert new record" "done"
@@ -107,10 +139,13 @@ insert_into_table() {
                     read
                     # trust user and append the record 
                     user_record="$REPLY"
+                    # extract primary key from user record
                     record_pk=`cut -f1 -d: <<< "$user_record"` # using what's called 'Here Strings' in Bash
-                    if grep -q "^$record_pk:" "$table_name"; 
+                    # check that primary key value is not used 
+                    # 'tail -n +2' used to exclude table header from PK check 
+                    if tail -n +2 "$table_name" | grep -q "^$record_pk:"; 
                     then 
-                        echo "primary key is used. pick another one!"
+                        echo "duplicate primary key!"
                         echo ''
                     else 
                         echo '' >> "$table_name" # new line 
@@ -128,7 +163,7 @@ insert_into_table() {
 }
 
 
-
+# TODO display table in a good readalbe format using awk
 select_from_table() {
     read -p "table name: "
     table_name="$REPLY"
@@ -162,6 +197,12 @@ delete_from_table() {
     read -p "table name: ";
     # skip table existance check
     table_name="$REPLY"
+
+    if ! [ -f "$table_name" ]
+    then
+        printf "\n!\ntable does not exist!\n\n" 
+    fi 
+
     while true
     do
         select option in "delete all" "delete by primary key" "no more delete"
@@ -189,22 +230,53 @@ delete_from_table() {
 # TODO
 # there are only 2 updates: 
 # 1. add new column 
-# 2. delete column but not primary key
+# 2. delete column that are not primary key
 update_table() { 
-    read -p "table name: ";
-    # skip table existance check
+    read -p "table name: "
     table_name="$REPLY"
+    if ! [ -f "$table_name" ]
+    then
+        printf "\n!\nno such table\n\n"
+        return 
+    fi
 
     while true 
     do 
-        select option from "add column" "delete column" "done"
+        select option in "delete column" "add column" "done"
         do 
             case $REPLY in
                 1) 
+                    # user enter column name 
 
+                    # check that column exist TODO
+                    # check that col is not pk TODO 
+                    # delete col reserving table format TODO 
                     break 
                     ;; 
                 2) 
+                    # user enter column name 
+                    read -p "new column name: "
+                    column_name="$REPLY"
+                    if ! is_column_name_valid "$column_name"
+                    then
+                        printf "\n!\n column name is not valid. Don't use ':'\n\n"
+                    # prevent duplicate column names
+                    elif head -1  "$table_name" | grep -q "$column_name:"; # if column name is taken
+                    then
+                        printf "\n!\nthis name is used.\n\n"
+                    else    
+                    # if all good, append col
+                    # by replacing table header(first line) with new column add using sed
+                    header_temp=`head -1 $table_name`
+                    # I must stop 'awk' at first line which is table header, otherwise 
+                    # In case of a record exactly as table header, awk will update both.
+                    # to prevent that, I used awk's 'sub' to update first header only
+                    # TODO with awk and avoid previous bug
+                    # using sed and range specifier 
+                    sed -i "0,/$header_temp/{s/"$header_temp"/"$header_temp$column_name:"/}" "$table_name"
+                    printf "\n added column $column_name"
+                    fi 
+                    
                     break 
                     ;; 
                 3) 

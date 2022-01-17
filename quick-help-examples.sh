@@ -92,3 +92,16 @@
 
 # check existance of a patten inside a file or string 
 # grep -q pattern file -> then use exit code to construct logic 
+
+
+# why printf instead of echo 
+# https://stackoverflow.com/questions/8467424/echo-newline-in-bash-prints-literal-n
+
+
+
+# print file exept first line 
+# https://stackoverflow.com/questions/339483/how-can-i-remove-the-first-line-of-a-text-file-using-bash-sed-script{}
+
+
+# replace first occurance using sed's range specifier 
+# https://stackoverflow.com/questions/148451/how-to-use-sed-to-replace-only-the-first-occurrence-in-a-file
